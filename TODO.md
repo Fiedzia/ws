@@ -4,5 +4,5 @@
 4. Service listing and search. 
 5. Cache operations (purge, set expire time)
 6. More services, protocol documentation
-   
+7. Gateways for existing websites/apis
 
