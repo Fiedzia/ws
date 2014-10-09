@@ -43,6 +43,7 @@ Examples:
 
 
     #lets use a file
+    
     ```sh
     ws --file - /proc/version example/cowsay say
     ```
@@ -57,6 +58,7 @@ Examples:
 
 
     #take standard input and send as a file
+    
     ```sh
     echo "yo" | ws --file - - example/cowsay say
     ```
@@ -72,6 +74,7 @@ Examples:
 
 
     #Pipe it any way you want
+    
     ```sh
     echo "yo" | ws --file - - example/cowsay say | wc -l
     ```
