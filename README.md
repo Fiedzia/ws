@@ -58,9 +58,9 @@ Examples:
 
     #take standard input and send as a file
     
-    ```sh
-    echo "yo" | ws --file - - example/cowsay say
-    ```
+    
+    $ echo "yo" | ws --file - - example/cowsay say
+    
 
          ____ 
         < yo >
@@ -107,7 +107,6 @@ Usage:
 
     ./ws -h
     ./ws --help
-    ./ws --list-services
     ./ws service_provider/service_name command options
     ./ws --file remotename localname service options
     
