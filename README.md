@@ -4,6 +4,15 @@ command. Here comes ws - single, generic command-line tool to access all kind of
 Add you service to ws service directory and let anyone use it without 
 the need to create or deploy any software or installing anything beyond ws client.
 
+Benefits:
+
+* Bring any api to the command line
+* Process local files with various cloud-based services
+* Try new services without installing any software (you'll need only ws client)
+* Learn just one tool
+* Use any mix of webservices and locally installed unix tools to slice, dice and filter your data,
+  combining them with no effort.
+
 
 Examples:
 
@@ -21,6 +30,7 @@ Examples:
              ||     ||
 
 
+
     ws example/cowsay help
 
         Welcome to cow-as-as-service. We support following commands:
@@ -31,6 +41,32 @@ Examples:
             say TEXT
                 draw a cow saying TEXT
 
+
+    #lets use a file
+		ws --file - /proc/version example/cowsay say
+
+        < Linux version 3.16.0-20-generic (buildd@klock) (gcc version 4.9.1 (Ubuntu 4.9.1-15ubuntu1) ) #27-Ubuntu SMP Wed Oct 1 17:35:12 UTC 2014 >
+         ----------------------------------------------------------------------------------------------------------------------------------------- 
+             \   ^__^
+              \  (oo)\_______
+                 (__)\       )\/\
+                   ||----w |
+                   ||     ||⏎  
+
+    #take standard input and send as a file
+		echo "yo" | ws --file - - example/cowsay say
+
+         ____ 
+        < yo >
+         ---- 
+             \   ^__^
+              \  (oo)\_______
+                 (__)\       )\/\
+                   ||----w |
+                   ||     ||⏎
+        
+
+		Isn't it awesome? 
 
 
 Installation:
@@ -54,6 +90,11 @@ Usage:
     ./ws --help
     ./ws --list-services
     ./ws service_provider/service_name command options
+    ./ws --file remotename localname service options
+				#note: remotename is a name under which file will be sent
+              while local name defines which your file will that be.
+              "-" as localname refers to standard input,
+              so you can pip through ws.
 
 
 Creating your own service:
@@ -64,6 +105,25 @@ Creating your own service:
     Note that this is only an example. You can create your service
     with any language or framework you choose,
     as long as it speaks http.
+    The service needs to accept GET or POST request.
+		Following parameters will be passed to the request:
+				comand: name of the command
+				You can define your commands and handle them however you want,
+				but you should display list of supported cmmands and brief documentation
+				when passed help command.
+
+				arg - any number (possibly none) of additional arguments for command
+		
+		Its your service responsibility to validate parameters and return meaningfull and helpful
+		message if they are wrong.
+
+
+		Response:
+			Return 200 response if you were able to parse command and its arguments,
+			and you have data to return. Any output will be printed to standard output.
+      Return 422 if a command or arguments are invalid.
+			
+				
     
 Adding your service to service directory:
 

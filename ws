@@ -149,7 +149,7 @@ class WebServiceCli:
             cached_file.write(raw)
         return data
 
-    def _call_http_get(self, command, params):
+    def _call_http_get(self, command, params, files=None):
         url = 'http://{}'.format(self.description['uri']['http/GET'])
         get_params={
             'command': command,
@@ -159,22 +159,25 @@ class WebServiceCli:
         response = requests.get(url, params=get_params)
         return response.content
 
-    def _call_http_post(self, command, params):
+    def _call_http_post(self, command, params, files=None):
         url = 'http://{}'.format(self.description['uri']['http/POST'])
         post_params={
             'command': command,
         }
         if params:
             post_params['arg'] = params
-        response = requests.post(url, params=get_params)
+        response = requests.post(url, params=post_params, files=files)
         return response.content
 
-    def call(self, command, params):
+    def call(self, command, params, files=None):
         for protocol in self.description['protocols']:
             if protocol == 'http/GET':
-                return self._call_http_get(command, params)
+                if files: #can't send files via GET request
+                    continue
+                else:
+                    return self._call_http_get(command, params, files=files)
             elif protocol == 'http/POST':
-                return self._call_http_post(command, params)
+                return self._call_http_post(command, params, files=files)
         raise(Exception('None of service protocols is known: {}'.format(self.description['protocols'])))
 
 
@@ -194,6 +197,16 @@ def extract_params():
         #        my_args.append(all_args.pop(0))
         #    else:
         #        break
+        elif arg in ('-f', ):
+            cmd_args.append(arg)
+            if len(remaining_args) == 0:
+                break
+            elif len(remaining_args) == 1:
+                cmd_args.append(remaining_args.pop(0))
+                break
+            else:
+                cmd_args.append(remaining_args.pop(0))
+                cmd_args.append(remaining_args.pop(0))
         else:
             remaining_args.insert(0, arg)
             break
@@ -209,7 +222,8 @@ def run():
                         help='display list of available services')
     parser.add_argument('-v', '--verbose',  dest='verbose', action='store_true',
                         help='be verbose')
-
+    parser.add_argument('-f', '--file',  dest='file', nargs=2, action='append',
+                        help='send file')
     #parser.add_argument('--seach',  dest='search',
     #                    help='search services')
     #TODO: handle loading files (-f reference_name path)
@@ -220,13 +234,20 @@ def run():
     if len(service_args) < 2:
         print("No arguments passed to service. I don't know what to do.", file=sys.stderr)
         sys.exit(3)
-    
+    files = []
+    if cmd_args.file:
+        for remotename, localname in cmd_args.file:
+            if localname == '-':
+                fileobj = sys.stdin
+            else:
+                fileobj = open(localname)
+            files.append((remotename, fileobj))
     service_name = service_args[0]
     service_command = service_args[1]
     service_command_args = service_args[2:]
     WebServiceCli.set_up_cache_dir()
     wscli = WebServiceCli(service_name)
-    result = wscli.call(service_command, service_command_args)
+    result = wscli.call(service_command, service_command_args, files=files)
     os.write(sys.stdout.fileno(), result)
 
 
