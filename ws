@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 #coding: utf8
-from __future__ import print_function
 """
 Imagine world where you can use all the webservices in the world via single
 command. Here comes ws - single, generic command-line tool to access all kind of web services.
@@ -97,11 +96,9 @@ except ImportError:
     #try to use virtualenv
     if os.path.exists(os.path.join(BASEDIR, 'venv')):
         sys.path.append(os.path.join(BASEDIR, 'venv', 'bin'))
-        print(sys.path)
         import activate_this
         try:
             import requests
-            print(requests)
         except ImportError:
             missing_request=True
     else:
