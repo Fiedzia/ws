@@ -16,9 +16,7 @@ Benefits:
 
 Examples:
 
-    ```sh
-        ws example/cowsay say hello
-    ```
+    $ ws example/cowsay say hello
 
      ------
     < hello >
@@ -30,9 +28,10 @@ Examples:
              ||     ||
 
 
-    ```sh
-        ws example/cowsay help
-    ```
+    
+    $ ws example/cowsay help
+    
+    
         Welcome to cow-as-as-service. We support following commands:
 
             help
@@ -44,9 +43,9 @@ Examples:
 
     #lets use a file
     
-    ```sh
-    ws --file - /proc/version example/cowsay say
-    ```
+
+    $ ws --file - /proc/version example/cowsay say
+
 
         < Linux version 3.16.0-20-generic (buildd@klock) (gcc version 4.9.1 (Ubuntu 4.9.1-15ubuntu1) ) #27-Ubuntu SMP Wed Oct 1 17:35:12 UTC 2014 >
          ----------------------------------------------------------------------------------------------------------------------------------------- 
@@ -75,11 +74,11 @@ Examples:
 
     #Pipe it any way you want
     
-    ```sh
-    echo "yo" | ws --file - - example/cowsay say | wc -l
-    ```
     
-    8
+    $ echo "yo" | ws --file - - example/cowsay say | wc -l
+    
+    
+        8
 
         
 
