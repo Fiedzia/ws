@@ -16,9 +16,9 @@ Benefits:
 
 Examples:
 
-```sh
-    ws example/cowsay say hello
-```
+    ```sh
+        ws example/cowsay say hello
+    ```
 
      ------
     < hello >
@@ -30,9 +30,9 @@ Examples:
              ||     ||
 
 
-```sh
-    ws example/cowsay help
-```
+    ```sh
+        ws example/cowsay help
+    ```
         Welcome to cow-as-as-service. We support following commands:
 
             help
