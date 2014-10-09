@@ -16,9 +16,9 @@ Benefits:
 
 Examples:
 
-
+```sh
     ws example/cowsay say hello
-
+```
 
      ------
     < hello >
@@ -30,9 +30,9 @@ Examples:
              ||     ||
 
 
-
+```sh
     ws example/cowsay help
-
+```
         Welcome to cow-as-as-service. We support following commands:
 
             help
@@ -43,7 +43,9 @@ Examples:
 
 
     #lets use a file
-		ws --file - /proc/version example/cowsay say
+    ```sh
+    ws --file - /proc/version example/cowsay say
+    ```
 
         < Linux version 3.16.0-20-generic (buildd@klock) (gcc version 4.9.1 (Ubuntu 4.9.1-15ubuntu1) ) #27-Ubuntu SMP Wed Oct 1 17:35:12 UTC 2014 >
          ----------------------------------------------------------------------------------------------------------------------------------------- 
@@ -53,8 +55,11 @@ Examples:
                    ||----w |
                    ||     ||⏎  
 
+
     #take standard input and send as a file
-		echo "yo" | ws --file - - example/cowsay say
+    ```sh
+    echo "yo" | ws --file - - example/cowsay say
+    ```
 
          ____ 
         < yo >
@@ -64,9 +69,21 @@ Examples:
                  (__)\       )\/\
                    ||----w |
                    ||     ||⏎
+
+
+    #Pipe it any way you want
+    ```sh
+    echo "yo" | ws --file - - example/cowsay say | wc -l
+    ```
+    
+    8
+
         
 
-		Isn't it awesome? 
+    Isn't it awesome?
+
+
+
 
 
 Installation:
@@ -91,10 +108,11 @@ Usage:
     ./ws --list-services
     ./ws service_provider/service_name command options
     ./ws --file remotename localname service options
-				#note: remotename is a name under which file will be sent
-              while local name defines which your file will that be.
-              "-" as localname refers to standard input,
-              so you can pip through ws.
+    
+    #note: remotename is a name under which file will be sent
+    while local name defines which your file will that be.
+    "-" as localname refers to standard input,
+    so you can pip through ws.
 
 
 Creating your own service:
@@ -121,6 +139,7 @@ Creating your own service:
 		Response:
 			Return 200 response if you were able to parse command and its arguments,
 			and you have data to return. Any output will be printed to standard output.
+			
       Return 422 if a command or arguments are invalid.
 			
 				
