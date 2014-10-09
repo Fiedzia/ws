@@ -144,13 +144,13 @@ class WebServiceCli:
             raise Exception('Command error: '+ response.reason)
         raw = requests.get(url).content.decode('utf8')
         data = json.loads(raw)
-        os.makedirs(os.path.dirname(cached_name))
+        os.makedirs(os.path.dirname(cached_name), exist_ok=True)
         with open(cached_name, 'w') as cached_file:
             cached_file.write(raw)
         return data
 
     def _call_http_get(self, command, params):
-        url = 'http://{}'.format(self.description['uri'])
+        url = 'http://{}'.format(self.description['uri']['http/GET'])
         get_params={
             'command': command,
         }
@@ -160,7 +160,7 @@ class WebServiceCli:
         return response.content
 
     def _call_http_post(self, command, params):
-        url = 'http://{}'.format(self.description['uri'])
+        url = 'http://{}'.format(self.description['uri']['http/POST'])
         post_params={
             'command': command,
         }
