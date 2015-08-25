@@ -1,8 +1,15 @@
-1. Handle https (need support for different domains/port numbers depending on protocol)
-2. Handle authentication. Ideally via various methods
-3. File uploads (ws --file name1 localpath1 --file name2 localpath2 example/service somecommand). File names can be referenced by arguments.
-4. Service listing and search. 
-5. Cache operations (purge, set expire time)
-6. More services, protocol documentation
-7. Gateways for existing websites/apis
+MVP:
 
+1. Shell with code completion. Perhaps based on click or ipython.
+2. Good documentation.
+3. Service listing and search. 
+4. More services.
+
+
+Later:
+
+Debug option (log/display requests and responses)
+run debugger option
+record request/responses to file
+templates for new service project
+tests
