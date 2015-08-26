@@ -1,13 +1,35 @@
-from parse import Command, Option, Flag
+from parse import Command
+from utils import quit
+
+
+class Quit(Command):
+    name = ':quit'
+    aliases = (':q',)
+    description = 'quit ws'
+
+    def run(self):
+        quit()
 
 
 class Help(Command):
-    pass
+    name = ':help'
+    description = 'display help info'
 
 
 class Alias(Command):
-    pass
+    name = ':alias'
+    description = ''
 
 
 class BinAlias(Command):
-    pass
+    name = ':binalias'
+
+
+class Commands(Command):
+    name = ':commands'
+
+    def run(self):
+        commands = self.parent.available_commands()
+        commands.sort(key=lambda cmd: cmd.name)
+        for command in commands:
+            print(command.name, command.description)

@@ -99,9 +99,6 @@ Adding your service to service directory:
     and it should be soon added there.
 
 """
-
-
-import argparse
 import atexit
 import json
 import os
@@ -109,32 +106,27 @@ import re
 import readline
 import sys
 
+import commands
+
 from parse import ArgumentDescription, Command, Flag, Option
-from commands import Help
+from utils import quit
 
-BASEDIR = os.path.dirname((os.path.realpath(__file__)))
-SERVICE_DIRECTORY = 'https://raw.githubusercontent.com/Fiedzia/ws/master/services/'
-VERSION = (0, 0, 0)  # major, minor, release
-
-
-missing_request = False
 try:
     import requests
 except ImportError:
-    #try to use virtualenv
-    if os.path.exists(os.path.join(BASEDIR, 'venv')):
-        sys.path.append(os.path.join(BASEDIR, 'venv', 'bin'))
-        import activate_this
-        try:
-            import requests
-        except ImportError:
-            missing_request=True
-    else:
-        missing_request=True
+    quit('Cannot find requests library. Please install it, its awesome. Aborting.', exitcode=1)
 
-if missing_request:
-    print('Cannot find requests library. Please install it, its awesome. Aborting.', file=sys.stderr)
-    sys.exit(1)
+
+try:
+    from prompt_toolkit.shortcuts import get_input
+    from prompt_toolkit.history import FileHistory
+    from prompt_toolkit.validation import Validator, ValidationError
+except ImportError:
+    quit('Cannot import prompt_toolkit. Please install it.', exitcode=1)
+
+BASEDIR = os.path.dirname((os.path.realpath(__file__)))
+VERSION = (0, 0, 1)  # major, minor, release
+VERSION_STR = '.'.join([str(v) for v in VERSION])
 
 
 def tokenize(text):
@@ -152,12 +144,6 @@ def setup_user_directories():
         os.makedirs(_dname, exist_ok=True)
 
 
-def quit(msg='Bye', exitcode=0):
-    if msg:
-        print('Bye')
-    sys.exit(exitcode)
-
-
 def complete(text, state):
     if state < 3:
         return '(' + text + ')'
@@ -165,26 +151,37 @@ def complete(text, state):
         return None
 
 
+class WsCmdValidator(Validator):
+
+    def validate(self, document):
+        try:
+            wscmd = WsCommand(None)
+            wscmd.parse(tokenize(line))
+        except Exception as e:
+            raise ValidationError(message=str(e), index=0)
+
 def run_shell():
     """
     Run interactive shell
     """
+    print('Welcome to ws shell (v{}) '.format(VERSION_STR))
+    print('type :help for help, type :q or press ^D to quit')
+    setup_user_directories()
     histfile = os.path.join(os.path.expanduser("~/.ws"), "history")
-    try:
-        readline.read_history_file(histfile)
-    except FileNotFoundError:
-        pass
-    atexit.register(readline.write_history_file, histfile)
+    history = FileHistory(histfile)
+    prompt = 'ws: '
 
-    readline.set_completer(complete)
-    readline.parse_and_bind('tab: complete')
     while True:
         try:
-            line = input('ws: ').strip()
+            line = get_input(prompt, history=history, validator=WsCmdValidator()).strip()
         except EOFError:
             quit()
-        if line == ':q':
-            quit()
+        wscmd = WsCommand(None)
+        try:
+            wscmd.parse(tokenize(line))
+            wscmd.run()
+        except Exception as e:
+            print('error: ' + str(e), file=sys.stderr)
 
 
 def run():
@@ -193,42 +190,10 @@ def run():
     wscmd.parse(sys.argv[1:])
     wscmd.run()
 
-    #TODO: use only in interactive mode
+    # TODO: use only in interactive mode
     run_shell()
 
     cmd_args, service_args = extract_params()
-
-    parser = argparse.ArgumentParser(description='ws')
-    parser.add_argument('-l', '--list-services',  dest='list_services', action='store_true',
-                        help='display list of available services')
-    parser.add_argument('-v', '--verbose',  dest='verbose', action='store_true',
-                        help='be verbose')
-    cmd_args = parser.parse_args(args=cmd_args)
-    if not service_args or not WebServiceCli.valid_service_name(service_args[0]):
-        print('Service name is missing or invalid', file=sys.stderr)
-        sys.exit(2)
-    if len(service_args) < 2:
-        print("No arguments passed to service. I don't know what to do.", file=sys.stderr)
-        sys.exit(3)
-    files = []
-    if cmd_args.file:
-        for remotename, localname in cmd_args.file:
-            if localname == '-':
-                fileobj = sys.stdin
-            else:
-                fileobj = open(localname)
-            files.append((remotename, fileobj))
-    service_name = service_args[0]
-    service_command = service_args[1]
-    service_command_args = service_args[2:]
-    WebServiceCli.set_up_cache_dir()
-    wscli = WebServiceCli(service_name)
-    result = wscli.call(service_command, service_command_args, files=files)
-    os.write(sys.stdout.fileno(), result)
-
-# Github(env, flags, options)
-# Github(env, flags, options).search(flags, options)
-# Github(env, flags, options).repo(flags, options).releases(flags, options)
 
 
 class Env:
@@ -246,6 +211,9 @@ class WsCommand(Command):
             Flag('V', 'version', help='display version number'),
         ]
 
+    def available_commands(self):
+        return [commands.Help, commands.Quit, commands.Commands]
+
     def run(self):
         if self.flags['help']:
             print('help')
@@ -253,6 +221,8 @@ class WsCommand(Command):
         elif self.flags['version']:
             print('.'.join([str(v) for v in VERSION]))
             quit(msg=None)
+        elif self.command:
+            self.command.run()
 
 
 class Dummy:

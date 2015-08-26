@@ -1,6 +1,8 @@
 class Command:
 
-    NAME = None
+    name = ''
+    aliases = ()
+    description = ''  # one-line description
 
     def __init__(self, parent, flags=None, options=None, arguments=None, command=None):
         self.parent = parent
@@ -50,6 +52,16 @@ class Command:
                 return option
         return False
 
+    def get_command(self, cmdname):
+        """
+        return Command class if cmd represents valid command name,
+        otherwise return None
+        """
+        for cmd in self.available_commands():
+            if cmd.name == cmdname or cmdname in cmd.aliases:
+                return cmd
+        return None
+
     def parse_unknown(self, tokens):
         """
         Fallback for parsing tokens not recognized as flags/commands/arguments/commands
@@ -82,11 +94,11 @@ class Command:
                 else:
                     raise Exception('missing option value')
             else:
-                command = self.is_valid_command(token)
+                command = self.get_command(token)
                 if command:
                     self.command = command(self)
                     _tokens.pop(0)
-                    command.parse(_tokens)
+                    self.command.parse(_tokens)
                     continue
                 #elif self._argument_info():
                 #    #handle arguments
@@ -122,3 +134,17 @@ class ArgumentDescription:
         self.description = description
         self.amount = amount
         self.require = require
+
+
+class Result:
+    """
+    Command result
+    """
+    def __init__(self, value):
+        """
+        value can be one of:
+            string
+            bytes
+            generator returning strings or bytes
+        """
+        pass

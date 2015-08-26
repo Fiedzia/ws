@@ -1,1 +1,2 @@
 requests==2.7.0
+prompt-toolkit==0.47
