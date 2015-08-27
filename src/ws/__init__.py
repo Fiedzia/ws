@@ -67,8 +67,9 @@ Multiple variants of service:
 
 Installation:
 
-    You will need ws client. Its a simple python script, depending only on
-    requests library. You can install it from you distribution repository,
+    You will need ws client.
+
+    You can install it from you distribution repository,
     or use virtualenv to create local copy.
 
     To get it in debian or ubuntu, run:
@@ -99,24 +100,23 @@ Adding your service to service directory:
     and it should be soon added there.
 
 """
-import atexit
 import json
 import os
 import re
 import readline
 import sys
 
-import commands
+from . import commands
 
-from parse import ArgumentDescription, Command, Flag, Option
-from tokenize import tokenize
-from utils import quit
+from .parse import ArgumentDefinition, Command, Flag, Option
+from .tokenize import tokenize
+from .utils import quit
 
 try:
     import requests
 except ImportError:
-    quit('Cannot find requests library. Please install it, its awesome. Aborting.', exitcode=1)
-
+    quit('Cannot find requests library. Please install it,'
+         ' its awesome. Aborting.', exitcode=1)
 
 try:
     from prompt_toolkit.shortcuts import get_input
@@ -130,65 +130,27 @@ VERSION = (0, 0, 1)  # major, minor, release
 VERSION_STR = '.'.join([str(v) for v in VERSION])
 
 
-
-
 def setup_user_directories():
-    for dname in ('~/.ws/cache', '~/.ws/services', '~/.ws/bin', '~/.ws/aliases'):
-        _dname = os.path.expanduser(dname)
-    if not os.path.exists(_dname):
-        os.makedirs(_dname, exist_ok=True)
-
-
-def complete(text, state):
-    if state < 3:
-        return '(' + text + ')'
-    else:
-        return None
+    for dname in ('~/.ws/cache', '~/.ws/services',
+                  '~/.ws/bin', '~/.ws/aliases'):
+        expanded_name = os.path.expanduser(dname)
+    if not os.path.exists(expanded_name):
+        os.makedirs(expanded_name, exist_ok=True)
 
 
 class WsCmdValidator(Validator):
 
+    def __init__(self, service_manager):
+        self.service_manager = service_manager
+        super().__init__()
+
     def validate(self, document):
         try:
-            wscmd = WsCommand(None)
+            wscmd = WsCommand(None, service_manager=self.service_manager)
             wscmd.parse(tokenize(document.text))
         except Exception as e:
-            raise ValidationError(message=str(e), index=0)
-
-def run_shell():
-    """
-    Run interactive shell
-    """
-    print('Welcome to ws shell (v{}) '.format(VERSION_STR))
-    print('type :help for help, type :q or press ^D to quit')
-    setup_user_directories()
-    histfile = os.path.join(os.path.expanduser("~/.ws"), "history")
-    history = FileHistory(histfile)
-    prompt = 'ws: '
-
-    while True:
-        try:
-            line = get_input(prompt, history=history, validator=WsCmdValidator()).strip()
-        except EOFError:
-            quit()
-        wscmd = WsCommand(None)
-        try:
-            wscmd.parse(tokenize(line))
-            wscmd.run()
-        except Exception as e:
-            print('error: ' + str(e), file=sys.stderr)
-
-
-def run():
-
-    wscmd = WsCommand(None)
-    wscmd.parse(sys.argv[1:])
-    wscmd.run()
-
-    # TODO: use only in interactive mode
-    run_shell()
-
-    cmd_args, service_args = extract_params()
+            #raise ValidationError(message=repr(e), index=0)
+            raise
 
 
 class Env:
@@ -200,6 +162,11 @@ class Env:
 
 class WsCommand(Command):
 
+    def __init__(self, *args, service_manager=None, **kwargs):
+        self.service_manager = service_manager
+        self.service = None
+        super().__init__(*args, **kwargs)
+
     def available_flags(self):
         return [
             Flag('h', 'help', help='display help'),
@@ -207,56 +174,48 @@ class WsCommand(Command):
         ]
 
     def available_commands(self):
-        return [commands.Help, commands.Quit, commands.Commands]
+        return commands.top_level_commands
+
+    def parse_unknown(self, tokens):
+        if self.service_manager.has_service(tokens[0].text):
+            service_class = self.service_manager.get_service(tokens[0].text)
+            self.service = service_class(env=None)
+            if len(tokens) > 1:
+                self.service.parse(tokens[1:])
 
     def run(self):
         if self.flags['help']:
             print('help')
             quit(msg=None)
         elif self.flags['version']:
-            print('.'.join([str(v) for v in VERSION]))
+            print(VERSION_STR)
             quit(msg=None)
         elif self.command:
             self.command.run()
+        elif self.service:
+            self.service.run()
+        else:
+            self.run_shell()
 
+    def run_shell(self):
+        """
+        Run interactive shell
+        """
+        print('Welcome to ws shell (v{}) '.format(VERSION_STR))
+        print('type :help for help, type :q or press ^D to quit')
+        setup_user_directories()
+        histfile = os.path.join(os.path.expanduser("~/.ws"), "history")
+        history = FileHistory(histfile)
+        prompt = 'ws: '
 
-class Dummy:
-    pass
-
-
-class Service:
-
-    """
-    One line service description
-
-    More detailed info
-    """
-
-    name = 'unnamed'
-
-    def __init__(self, env, flags=None, options=None, arguments=None):
-        self._meta = Dummy()
-        self._env = env
-        self._meta.endpoint = None
-        self._meta.flags = flags
-        self._meta.options = options
-        self._meta.arguments = arguments
-
-    def help(self):
-        pass
-
-    def available_commands(self):
-        return []
-
-    def available_flags(self):
-        return {}
-
-    def available_options(self):
-        return {}
-
-    def argument_info(self):
-        return None
-
-
-if __name__ == '__main__':
-    run()
+        while True:
+            try:
+                line = get_input(prompt, history=history, validator=WsCmdValidator(self.service_manager)).strip()
+            except EOFError:
+                quit()
+            wscmd = WsCommand(None, service_manager=self.service_manager)
+            try:
+                wscmd.parse(tokenize(line))
+                wscmd.run()
+            except Exception as e:
+                print('error: ' + repr(e), file=sys.stderr)

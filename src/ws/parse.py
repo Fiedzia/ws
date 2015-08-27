@@ -1,4 +1,4 @@
-from tokenize import TokenType
+from .tokenize import TokenType
 
 
 class Command:
@@ -32,10 +32,12 @@ class Command:
     def available_options(self):
         return []
 
-    def argument_info(self):
+    def argument_definition(self):
         return None
 
     def run(self):
+        if self.command:
+            return self.command.run()
         raise NotImplementedError
 
     def is_valid_flag(self, token):
@@ -109,18 +111,30 @@ class Command:
                     token.tokentype = TokenType.Command
                     _tokens.pop(0)
                     self.command.parse(_tokens)
-                    continue
-                #elif self._argument_info():
-                #    #handle arguments
-                self.parse_unknown(_tokens)
+                    return
+                elif self.argument_definition():
+                    arg_def = self.argument_definition()
+                    if arg_def.min_amount:
+                        if len(_tokens) < arg_def.min_amount:
+                            raise Exception('Not enough arguments. Expected at least {}, got {}'.format(arg_def.min_amount, len(_tokens)))
+                    if arg_def.max_amount:
+                        argument_tokens = _tokens[:arg_def.max_amount]
+                    else:
+                        argument_tokens = _tokens[:]
+                    for argument_token in argument_tokens:
+                        argument_token.tokentype = TokenType.Argument
+                        _tokens.pop(0)
+                    self.arguments = [argument_token.text for argument_token in argument_tokens]
+                if _tokens:
+                    self.parse_unknown(_tokens)
+                    _tokens.clear()
 
 
 class Flag:
     def __init__(self, shortname, longname, canonical=None, default=False, help=None, description=None):
         self.shortname = shortname
         self.longname = longname
-        self.canonical = canonical
-        self.canonical = self.canonical or self.longname or self.shortname
+        self.canonical = canonical or self.longname or self.shortname
         self.default = default
         self.help = help
         self.description = description
@@ -130,7 +144,7 @@ class Option:
     def __init__(self, shortname, longname, canonical=None, default=None, help=None, description=None, type=str, required=False):
         self.shortname = shortname
         self.longname = longname
-        self.canonical = self.canonical or self.longname or self.shortname
+        self.canonical = canonical or self.longname or self.shortname
         self.default = default
         self.help = help
         self.description = description
@@ -138,12 +152,12 @@ class Option:
         self.require = required
 
 
-class ArgumentDescription:
-    def __init__(self, help=None, description=None, amount=None, require=False):
+class ArgumentDefinition:
+    def __init__(self, help=None, description=None, min_amount=None, max_amount=None):
         self.help = help
         self.description = description
-        self.amount = amount
-        self.require = require
+        self.min_amount = min_amount
+        self.max_amount = max_amount
 
 
 class Result:

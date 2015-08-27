@@ -13,7 +13,7 @@ MVP:
 10. Shell: vlidation
 11. Shell: syntax highlight
 12. Shell: manage aliases/binaliases
-
+13. Service playground: online tool to quickly write and test scripts for new services
 
 Later:
 
