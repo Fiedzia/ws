@@ -1,5 +1,10 @@
-class Command:
+from tokenize import TokenType
 
+
+class Command:
+    """
+    Command definition
+    """
     name = ''
     aliases = ()
     description = ''  # one-line description
@@ -73,30 +78,35 @@ class Command:
         """
         set options, flags, arguments and command according to own specification
         or raise an InvalidInput exception
+        also set tokentype on all parsed tokens
         """
         _tokens = tokens[:]
         while _tokens:
             token = _tokens[0]
-            if token.startswith('-'):
+            if token.text.startswith('-'):
                 flag = self.is_valid_flag(token)
                 if flag:
                     self.flags[flag.canonical] = True
+                    token.tokentype = TokenType.Flag
                     _tokens.pop(0)
                     continue
 
                 if len(_tokens) > 1:
-                    option = self.is_valid_option(_tokens[0], _tokens[1])
+                    option = self.is_valid_option(_tokens[0].text, _tokens[1].text)
                     if option:
-                        self.options[option.canonical] = _tokens[1]
+                        self.options[option.canonical] = _tokens[1].text
+                        _tokens[0].tokentype = TokenType.OptionName
+                        _tokens[1].tokentype = TokenType.OptionValue
                         _tokens.pop(0)
                         _tokens.pop(0)
                         continue
                 else:
                     raise Exception('missing option value')
             else:
-                command = self.get_command(token)
+                command = self.get_command(token.text)
                 if command:
                     self.command = command(self)
+                    token.tokentype = TokenType.Command
                     _tokens.pop(0)
                     self.command.parse(_tokens)
                     continue

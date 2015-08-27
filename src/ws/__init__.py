@@ -109,6 +109,7 @@ import sys
 import commands
 
 from parse import ArgumentDescription, Command, Flag, Option
+from tokenize import tokenize
 from utils import quit
 
 try:
@@ -129,12 +130,6 @@ VERSION = (0, 0, 1)  # major, minor, release
 VERSION_STR = '.'.join([str(v) for v in VERSION])
 
 
-def tokenize(text):
-    """
-    Split text into tokens
-    """
-    # TODO: handle quotes and double quotes
-    return text.strip().split()
 
 
 def setup_user_directories():
@@ -156,7 +151,7 @@ class WsCmdValidator(Validator):
     def validate(self, document):
         try:
             wscmd = WsCommand(None)
-            wscmd.parse(tokenize(line))
+            wscmd.parse(tokenize(document.text))
         except Exception as e:
             raise ValidationError(message=str(e), index=0)
 
