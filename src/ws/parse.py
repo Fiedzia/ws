@@ -128,6 +128,13 @@ class Command:
                 if _tokens:
                     self.parse_unknown(_tokens)
                     _tokens.clear()
+        # check if there are any missing required options or arguments
+        for option in self.available_options():
+            if option.required and option.canonical not in self.options:
+                raise Exception('required option missing: ' + option.canonical)
+        if self.argument_definition() and self.argument_definition().min_amount is not None:
+            if not self.arguments:
+                raise Exception('Command {} is missing required arguments.'.format(self.name))
 
 
 class Flag:
@@ -149,7 +156,7 @@ class Option:
         self.help = help
         self.description = description
         self.type = type
-        self.require = required
+        self.required = required
 
 
 class ArgumentDefinition:

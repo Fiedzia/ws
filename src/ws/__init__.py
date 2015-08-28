@@ -105,11 +105,12 @@ import os
 import re
 import readline
 import sys
+import traceback
 
 from . import commands
 
 from .parse import ArgumentDefinition, Command, Flag, Option
-from .tokenize import tokenize
+from .tokenize import tokenize, TokenType
 from .utils import quit
 
 try:
@@ -122,8 +123,14 @@ try:
     from prompt_toolkit.shortcuts import get_input
     from prompt_toolkit.history import FileHistory
     from prompt_toolkit.validation import Validator, ValidationError
+    from prompt_toolkit.completion import Completer, Completion
+    from prompt_toolkit.layout.lexers import Lexer
 except ImportError:
     quit('Cannot import prompt_toolkit. Please install it.', exitcode=1)
+
+# pygment is prompt_toolkit dependency, so we know its there
+from pygments import token as pygment_token
+
 
 BASEDIR = os.path.dirname((os.path.realpath(__file__)))
 VERSION = (0, 0, 1)  # major, minor, release
@@ -149,7 +156,7 @@ class WsCmdValidator(Validator):
             wscmd = WsCommand(None, service_manager=self.service_manager)
             wscmd.parse(tokenize(document.text))
         except Exception as e:
-            #raise ValidationError(message=repr(e), index=0)
+            # raise ValidationError(message=repr(e), index=0)
             raise
 
 
@@ -158,6 +165,52 @@ class Env:
     def __init__(self, username=None, variant=None):
         self.username = username
         self.variant = variant
+
+
+class WsCompleter(Completer):
+
+    def get_completions(self, document, complete_event):
+        word = document.get_word_before_cursor()
+        for i in range(5):
+            yield Completion('abc' + str(i), -len(word), display_meta='banana:' + word)
+
+
+class WsLexer(Lexer):
+
+    def __init__(self, service_manager):
+        super().__init__()
+        self.service_manager = service_manager
+
+    def get_tokens(self, cli, text):
+        tokens = []
+        if not text:
+            return tokens
+        wscmd = WsCommand(None, service_manager=self.service_manager)
+        try:
+            ws_tokens = tokenize(text)
+            wscmd.parse(ws_tokens)
+        except Exception as e:
+            # TODO: specify exception type
+            pass
+        position = 0
+        for ws_token in ws_tokens:
+            if ws_token.position > position:
+                tokens.append((pygment_token.Whitespace, text[position:ws_token.position]))
+            token_type = pygment_token.Generic
+            if ws_token.tokentype == TokenType.Service:
+                token_type = pygment_token.Keyword
+            elif ws_token.tokentype == TokenType.Flag:
+                token_type = pygment_token.Number
+            elif ws_token.tokentype == TokenType.OptionName:
+                token_type = pygment_token.Literal
+            elif ws_token.tokentype == TokenType.Command:
+                token_type = pygment_token.Operator
+
+            tokens.append((token_type, ws_token.text))
+            position = ws_token.position + len(ws_token.text)
+        if len(text) > position:
+                tokens.append((pygment_token.Whitespace, text[position:]))
+        return tokens
 
 
 class WsCommand(Command):
@@ -180,8 +233,11 @@ class WsCommand(Command):
         if self.service_manager.has_service(tokens[0].text):
             service_class = self.service_manager.get_service(tokens[0].text)
             self.service = service_class(env=None)
+            tokens[0].tokentype = TokenType.Service
             if len(tokens) > 1:
-                self.service.parse(tokens[1:])
+                return self.service.parse(tokens[1:])
+        else:
+            raise Exception('unknown command or service: '.format(tokens[0].text))
 
     def run(self):
         if self.flags['help']:
@@ -207,10 +263,17 @@ class WsCommand(Command):
         histfile = os.path.join(os.path.expanduser("~/.ws"), "history")
         history = FileHistory(histfile)
         prompt = 'ws: '
+        completer = WsCompleter()
 
         while True:
             try:
-                line = get_input(prompt, history=history, validator=WsCmdValidator(self.service_manager)).strip()
+                line = get_input(
+                    prompt,
+                    history=history,
+                    validator=WsCmdValidator(self.service_manager),
+                    completer=completer,
+                    lexer=WsLexer(self.service_manager)
+                ).strip()
             except EOFError:
                 quit()
             wscmd = WsCommand(None, service_manager=self.service_manager)
@@ -219,3 +282,4 @@ class WsCommand(Command):
                 wscmd.run()
             except Exception as e:
                 print('error: ' + repr(e), file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
