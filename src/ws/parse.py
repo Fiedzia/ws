@@ -43,9 +43,9 @@ class Command:
     def is_valid_flag(self, token):
         flags = self.available_flags()
         for flag in flags:
-            if token.startswith('--') and flag.longname == token[2:]:
+            if token.text.startswith('--') and flag.longname == token.text[2:]:
                 return flag
-            elif token.startswith('-') and flag.shortname == token[1:]:
+            elif token.text.startswith('-') and flag.shortname == token.text[1:]:
                 return flag
         return False
 

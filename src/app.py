@@ -9,7 +9,12 @@ from ws.tokenize import Token
 def run():
     service_manager = ServiceManager()
     wscmd = WsCommand(parent=None, service_manager=service_manager)
-    wscmd.parse(list(map(Token, sys.argv[1:])))
+    tokens = []
+    idx = 0
+    for arg in sys.argv[1:]:
+        tokens.append(Token(arg, idx))
+        idx += len(arg) + 1
+    wscmd.parse(tokens)
     wscmd.run()
 
 

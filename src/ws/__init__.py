@@ -100,6 +100,7 @@ Adding your service to service directory:
     and it should be soon added there.
 
 """
+import imp
 import json
 import os
 import re
@@ -114,7 +115,7 @@ from .tokenize import tokenize, TokenType
 from .utils import quit
 
 try:
-    import requests
+    requests = imp.load_module('requests1', *imp.find_module('requests'))
 except ImportError:
     quit('Cannot find requests library. Please install it,'
          ' its awesome. Aborting.', exitcode=1)

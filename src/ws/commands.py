@@ -79,7 +79,7 @@ class Help(Command):
         else:
             print('Help for ' + self.arguments[0])
             if self.arguments[0].startswith(':'):
-                for cmd in self.parent.available_commands:
+                for cmd in self.parent.available_commands():
                     if cmd.name.lower() == self.arguments[0].lower():
                         command_instance = cmd(parent=self.parent)
                         print(self.command_help(command_instance))
@@ -121,6 +121,17 @@ class Commands(Command):
             print('  ', command.name, command.description)
 
 
+class Services(Command):
+    name = ':services'
+    description = 'list available services'
+
+    def run(self):
+        services = self.parent.service_manager.all_services()
+        services.sort(key=lambda service: service.name)
+        print('Available services:')
+        for service in services:
+            print('  ', service.name, service.description)
+
 top_level_commands = [
-    Quit, Help, Alias, BinAlias, Commands
+    Quit, Help, Alias, BinAlias, Commands, Services
 ]

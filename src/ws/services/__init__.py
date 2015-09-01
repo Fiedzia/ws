@@ -25,6 +25,9 @@ class ServiceManager:
         raise Exception('Service not found: ' + service_name)
 
     def has_service(self, service_name):
+        """
+        return True if a service with given name exists
+        """
         if service_name in self.service_dict:
             return True
         elif os.path.exists(os.path.join(os.path.dirname(__file__), service_name)):
@@ -32,7 +35,13 @@ class ServiceManager:
         return False
 
     def all_services(self):
-        return []
+        basedir = os.path.dirname(__file__)
+        services = []
+        for service_name in os.listdir(basedir):
+            if not service_name.startswith('__') and not service_name.startswith('.'):
+                service = self.load_service(service_name)
+                services.append(service)
+        return services
 
     def get_service(self, service_name):
         if service_name in self.service_dict:
